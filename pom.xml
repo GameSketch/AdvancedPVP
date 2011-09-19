@@ -4,7 +4,7 @@
 
     <groupId>net.gamesketch.advancedpvp</groupId>
     <artifactId>AdvancedPVP</artifactId>
-    <version>0.0.0</version>
+    <version>0.1.0-SNAPSHOT</version>
     <dependencies>
         <dependency>
             <groupId>org.bukkit</groupId>

@@ -6,6 +6,62 @@ author: Cogito
 description: >
              Advanced configuration settings for PVP play.
 commands:
-
+  setpvp:
+    description: Set the PVP mode. For now, this is on/off.
+    usage: |
+           /<command> [server|world [<name>]|player [<name>]] <pvp-mode>
+           Example: /<command> server on - set server pvp mode to 'on'.
+           Example: /<command> world hell off - set the "hell" world's pvp game mode to 'off'.
+           Example: /<command> player admin on - set the "admin" player's pvp game mode to 'on'.
+  resetview:
+    description: Reset the PVP mode to defaults.
+    usage: |
+           /<command> [server|world [<name>]|player [<name>]] <pvp-mode>
+           Example: /<command> server - reset the server pvp game mode to 'off'.
+           Example: /<command> world hell - reset the "hell" world's pvp game mode to the server's.
+           Example: /<command> player admin - reset the "admin" player's pvp game mode to the world's.
 permissions:
+  advancedpvp:
+    default: op
+    description: allow full control over pvp game modes
+    children:
+      advancedpvp.set: true
+      advancedpvp.reset: true
+
+  advancedpvp.set:
+    description: |
+                 allow the setting of all pvp game mode
+                 can use world.worldname and player.playername for fine grained control
+    children:
+      advancedpvp.set.server: true
+      advancedpvp.set.world: true
+      advancedpvp.set.player: true
+  advancedpvp.set.server:
+    description: allow setting of the server pvp game mode
+  advancedpvp.set.world:
+    description: allow setting of all world pvp game mode
+  advancedpvp.set.player:
+    description: allow setting of all player pvp game modes
+  advancedpvp.set.self:
+    description: allow setting of a player's own pvp game mode
+    default: false
+
+  advancedpvp.reset:
+    description: |
+                 allow the resetting of all pvp game mode
+                 can use world.worldname and player.playername for fine grained control
+    children:
+      advancedpvp.reset.server: true
+      advancedpvp.reset.world: true
+      advancedpvp.reset.player: true
+  advancedpvp.reset.server:
+    description: allow resetting of the server pvp game mode
+  advancedpvp.reset.world:
+    description: allow resetting of all world pvp game mode
+  advancedpvp.reset.player:
+    description: allow resetting of all player pvp game modes
+  advancedpvp.reset.self:
+    description: allow resetting of a player's own pvp game mode
+    default: false
+
 
