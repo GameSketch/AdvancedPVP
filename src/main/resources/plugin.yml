@@ -1,0 +1,11 @@
+name: AdvancedPVP
+main: net.gamesketch.advancedpvp.AdvancedPVP
+version: ${version}
+website: http://www.gamesketch.net
+author: Cogito
+description: >
+             Advanced configuration settings for PVP play.
+commands:
+
+permissions:
+
