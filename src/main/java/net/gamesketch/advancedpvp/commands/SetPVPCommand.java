@@ -121,7 +121,7 @@ public class SetPVPCommand implements CommandExecutor {
         if (server == null) {
             return false;
         }
-        plugin.setServerPVP(server, pvp);
+        plugin.setServerPVP(pvp);
         sender.sendMessage("Server PVP mode set to "+ pvp);
         return true;
     }

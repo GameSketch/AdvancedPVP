@@ -89,8 +89,8 @@ public class ResetPVPCommand implements CommandExecutor {
             sender.sendMessage("You do not have permission to use this command.");
             return true;
         }
-        plugin.resetServerPVP(server);
-        sender.sendMessage("Server PVP mode reset. It is now "+plugin.getServerPVP(server).toString());
+        plugin.resetServerPVP();
+        sender.sendMessage("Server PVP mode reset. It is now "+plugin.getServerPVP().toString());
         return true;
     }
 }
