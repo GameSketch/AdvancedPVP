@@ -2,14 +2,22 @@ package net.gamesketch.advancedpvp;
 
 import net.gamesketch.advancedpvp.commands.ResetPVPCommand;
 import net.gamesketch.advancedpvp.commands.SetPVPCommand;
+import net.gamesketch.advancedpvp.listeners.PlayerAttackListener;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.entity.EntityListener;
 import org.bukkit.plugin.PluginDescriptionFile;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class AdvancedPVP extends JavaPlugin {
@@ -18,6 +26,9 @@ public class AdvancedPVP extends JavaPlugin {
     Map<World, PVPGameMode> worldGameModes;
     Map<OfflinePlayer, PVPGameMode> playerGameModes;
     private static final boolean SERVE_DEFAULT_GAME_MODE = false;
+    private EntityListener playerAttackListener = new PlayerAttackListener(this);
+    private Map<Player, List<AttackLog>> attackLogLists;
+    private Map<Player, PvpProperties> pvpPropertiesMap;
 
     public void onDisable() {
         PluginDescriptionFile pdfFile = this.getDescription();
@@ -32,6 +43,11 @@ public class AdvancedPVP extends JavaPlugin {
         serverGameMode = new PVPGameMode(SERVE_DEFAULT_GAME_MODE);
         worldGameModes = new HashMap<World, PVPGameMode>();
         playerGameModes = new HashMap<OfflinePlayer, PVPGameMode>();
+        attackLogLists = new HashMap<Player, List<AttackLog>>();
+        pvpPropertiesMap = new HashMap<Player, PvpProperties>();
+
+        PluginManager pm = getServer().getPluginManager();
+        pm.registerEvent(Event.Type.ENTITY_DAMAGE, playerAttackListener, Event.Priority.Normal, this);
 
         System.out.println(pdfFile.getName() + " version " + pdfFile.getVersion() + " is enabled!");
     }
@@ -103,4 +119,94 @@ public class AdvancedPVP extends JavaPlugin {
         }
         throw new IllegalArgumentException("'"+arg+"' is not a valid representation of boolean.");
     }
+
+    public void registerDamage(Player damagee, Player damager, int damage) {
+        List<AttackLog> attackLogs = getAttackLogs(damagee);
+        attackLogs.add(0, new AttackLog(new Date(), damager, damagee.getHealth(), damage)); // insert new log at start of list
+    }
+
+    public boolean isAttackBlocked(Player damagee, Player damager) {
+        PvpProperties pvpProperties = pvpPropertiesMap.get(damagee);
+        if (pvpProperties == null) {
+            pvpProperties = new PvpProperties();
+        }
+        pvpPropertiesMap.put(damagee, pvpProperties);
+        return pvpProperties.isInCooldown();
+    }
+
+    public void registerDeath(Player deadPlayer) {
+        Date currentTime = new Date();
+        Date cutOff = new Date(currentTime.getTime() - getCutOffTime(deadPlayer));
+        List<AttackLog> attackLogs = attackLogLists.get(deadPlayer);
+        Collections.sort(attackLogs, AttackLog.mostRecentComparator);
+        Map<Player, Integer> damageCounts = new HashMap<Player, Integer>();
+        for (AttackLog attackLog : attackLogs) {
+            if (attackLog.getTimestamp().after(cutOff)) {
+                final Player damager = attackLog.getDamager(); // might be null, means not a player
+                Integer damageCount = damageCounts.get(damager);
+                if (damageCount == null) {
+                    damageCount = attackLog.getDamage();
+                } else {
+                    damageCount += attackLog.getDamage();
+                }
+                damageCounts.put(damager, damageCount);
+            } else {
+                break;
+            }
+        }
+        int playerDamage = 0;
+        int nonPlayerDamage = 0;
+        for (Map.Entry<Player, Integer> entry : damageCounts.entrySet()) {
+            if (entry.getKey() == null) {
+                nonPlayerDamage += entry.getValue();
+            } else {
+                playerDamage += entry.getValue();
+            }
+        }
+        if (playerDamage > nonPlayerDamage) {
+            addPvpCooldown(deadPlayer);
+        }
+        /*
+        // This code determines the player that caused the most damage - will be useful later
+        Map.Entry<Player, Integer> mostDamage = Collections.max(damageCounts.entrySet(), new Comparator<Map.Entry<Player, Integer>>() {
+            public int compare(Map.Entry<Player, Integer> o1, Map.Entry<Player, Integer> o2) {
+                return o1.getValue().compareTo(o2.getValue());
+            }
+        });
+
+        if (mostDamage.getKey() == null) {
+            // most damage was not by a player
+        } else {
+            // most damage was by a player
+            addPvpCooldown(deadPlayer);
+        }*/
+    }
+
+    private void addPvpCooldown(Player player) {
+        PvpProperties pvpProperties = pvpPropertiesMap.get(player);
+        if (pvpProperties == null) {
+            pvpProperties = new PvpProperties();
+        }
+        pvpProperties.addPvpCooldown(getCutOffTime(player));
+        pvpPropertiesMap.put(player, pvpProperties);
+    }
+
+    /**
+     *
+     * @param player the player whose cut off time you want to know
+     * @return time in milliseconds the given player is immune to pvp attack - 3 minutes for now
+     */
+    private long getCutOffTime(Player player) {
+        return 3*60*1000; // TODO make configurable
+    }
+
+    private List<AttackLog> getAttackLogs(Player damagee) {
+        List<AttackLog> attackLogs = attackLogLists.get(damagee);
+        if (attackLogs == null) {
+            attackLogs = new LinkedList<AttackLog>(); //use linked list because most operations will be near the start
+            attackLogLists.put(damagee, attackLogs);
+        }
+        return attackLogs;
+    }
+
 }
